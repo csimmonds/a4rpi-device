@@ -25,7 +25,7 @@ PRODUCT_CHARACTERISTICS := tablet
 
 # Screen density (default is 0)
 PRODUCT_PROPERTY_OVERRIDES += \
-       ro.sf.lcd_density=200
+       ro.sf.lcd_density=160
 
 # RPi3 only has 1GiB RAM (768 MiB available to the CPU)
 PRODUCT_PROPERTY_OVERRIDES += \
