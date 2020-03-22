@@ -15,3 +15,6 @@
 #
 
 PRODUCT_MAKEFILES := $(LOCAL_DIR)/aosp_rpi3.mk
+
+COMMON_LUNCH_CHOICES := \
+    aosp_rpi3-eng

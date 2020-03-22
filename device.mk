@@ -1,25 +1,12 @@
-#
-# Copyright (C) 2017 The LineageOS Project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
-DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
+PRODUCT_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
 $(call inherit-product, frameworks/native/build/tablet-7in-hdpi-1024-dalvik-heap.mk)
-$(call inherit-product, vendor/brcm/rpi3/rpi3-vendor.mk)
 
-PRODUCT_AAPT_CONFIG := normal mdpi hdpi
+# Enable Treble
+PRODUCT_FULL_TREBLE_OVERRIDE := true
+
+PRODUCT_AAPT_CONFIG := normal
 PRODUCT_AAPT_PREF_CONFIG := mdpi
 PRODUCT_CHARACTERISTICS := tablet
 
@@ -27,25 +14,49 @@ PRODUCT_CHARACTERISTICS := tablet
 PRODUCT_PROPERTY_OVERRIDES += \
        ro.sf.lcd_density=160
 
+# Specify OpenGLES version
+# 131072 = 2.0
+# 196608 = 3.0
+# 196609 = 3.1
+# 196610 = 3.2
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.opengles.version=131072
+
 # RPi3 only has 1GiB RAM (768 MiB available to the CPU)
 PRODUCT_PROPERTY_OVERRIDES += \
-      ro.config.low_ram=true
+    ro.config.low_ram=true
 
-# Use swiftshader Open GL libraries
+# Set factory reset protection (frp) to a persistent data block stored in an mmc partiton
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.frp.pst=/dev/block/platform/soc/3f202000.mmc/by-name/frp
+
+## Use swiftshader Open GL libraries
+#PRODUCT_PACKAGES += \
+#    libEGL_swiftshader \
+#    libGLESv1_CM_swiftshader \
+#    libGLESv2_swiftshader \
+#    libyuv
+
+# Mesa OpenGL + drm hw composer and drm gralloc
 PRODUCT_PACKAGES += \
-    libEGL_swiftshader \
-    libGLESv1_CM_swiftshader \
-    libGLESv2_swiftshader \
-    libyuv
+    libGLES_mesa \
+    gralloc.rpi3
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    gralloc.drm.device=/dev/dri/card0			      
+
+# Prevent hwui from overloading hwcomposer.drm: remove when drm_hwc is fixed
+PRODUCT_PROPERTY_OVERRIDES += \
+    debug.hwui.use_partial_updates=0
+
+# kernel
+PRODUCT_COPY_FILES += $(LOCAL_PATH)/zImage:kernel
 
 # Audio
 PRODUCT_PACKAGES += \
     android.hardware.audio@2.0-impl \
-    android.hardware.audio@2.0-service \
     android.hardware.audio.effect@2.0-impl \
-    audio.a2dp.default \
     audio.primary.rpi3 \
-    audio.r_submix.default \
     audio.usb.default
 
 # Init scrips, etc
@@ -54,7 +65,9 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/init.rpi3.rc:root/init.rpi3.rc \
     $(LOCAL_PATH)/ueventd.rpi3.rc:root/ueventd.rpi3.rc
 
+# Audio config
 PRODUCT_COPY_FILES += \
+    device/generic/goldfish/camera/media_profiles.xml:system/etc/media_profiles.xml \
     frameworks/av/media/libeffects/data/audio_effects.conf:vendor/etc/audio_effects.conf \
     frameworks/av/services/audiopolicy/config/a2dp_audio_policy_configuration.xml:vendor/etc/a2dp_audio_policy_configuration.xml \
     frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:vendor/etc/audio_policy_volumes.xml \
@@ -79,36 +92,17 @@ PRODUCT_PACKAGES += \
 
 # Graphics
 PRODUCT_PACKAGES += \
-    android.hardware.graphics.allocator@2.0-impl \
-    android.hardware.graphics.allocator@2.0-service \
-    android.hardware.graphics.composer@2.1-impl \
-    android.hardware.graphics.composer@2.1-service \
-    android.hardware.graphics.mapper@2.0-impl \
+    android.hardware.graphics.allocator@2.0-service.rpi3 \
+    android.hardware.graphics.mapper@2.0-impl.rpi3 \
+    android.hardware.graphics.composer@2.1-impl.rpi3 \
     android.hardware.memtrack@1.0-impl \
     android.hardware.memtrack@1.0-service \
     memtrack.rpi3
-
-# Useful i2c tools:
-PRODUCT_PACKAGES += \
-    i2cdetect \
-    i2cdump \
-    i2cget \
-    i2cset
-
-# Apps using RPi sense hat
-PRODUCT_PACKAGES += \
-    rpisense-rainbow \
-    rpisense-humidity \
-    sense-hat-app
 
 # Keymaster
 PRODUCT_PACKAGES += \
     android.hardware.keymaster@3.0-impl \
     android.hardware.keymaster@3.0-service
-
-# Lights
-PRODUCT_PACKAGES += \
-    android.hardware.light@2.0-service.rpi3
 
 # Power
 PRODUCT_PACKAGES += \
@@ -123,9 +117,22 @@ PRODUCT_PACKAGES += \
 # Wifi
 PRODUCT_PACKAGES += \
     android.hardware.wifi@1.0-service \
+    libwpa_client \
     hostapd \
     wificond \
-    wpa_supplicant
+    wifilogd \
+    wpa_supplicant \
+    wpa_supplicant.conf
+
+PRODUCT_COPY_FILES += \
+    hardware/broadcom/wlan/bcmdhd/config/wpa_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant_overlay.conf \
+
+# Getkeeper (performs device pattern/password authentication in a Trusted Execution Environment (TEE)
+# https://source.android.com/security/authentication/gatekeeper
+PRODUCT_PACKAGES += \
+    gatekeeper.rpi3 \
+    android.hardware.gatekeeper@1.0-service \
+    android.hardware.gatekeeper@1.0-impl
 
 # Prebuilt
 PRODUCT_COPY_FILES += \

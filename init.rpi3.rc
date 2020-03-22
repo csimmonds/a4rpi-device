@@ -14,13 +14,12 @@ on fs
     mount_all /fstab.rpi3
 
 on post-fs-data
+    mkdir /data/vendor/wifi 0770 wifi wifi
+    mkdir /data/vendor/wifi/wpa 0770 wifi wifi
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
 
 on boot
-    # Lights
-    chown system system /sys/class/backlight/rpi_backlight/brightness
-
     setprop net.dns1 8.8.8.8
     setprop net.dns2 8.8.4.4
 
@@ -34,11 +33,11 @@ on boot
     start adbd
 
 service wpa_supplicant /vendor/bin/hw/wpa_supplicant \
-    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf \
-    -I/vendor/etc/wifi/wpa_supplicant_overlay.conf \
-    -O/data/misc/wifi/sockets \
-    -e/data/misc/wifi/entropy.bin -g@android:wpa_wlan0
-    class main
-    socket wpa_wlan0 dgram 660 wifi wifi
-    disabled
-    oneshot
+     -g@android:wpa_wlan0
+     interface android.hardware.wifi.supplicant@1.0::ISupplicant default
+     interface android.hardware.wifi.supplicant@1.1::ISupplicant default
+     socket wpa_wlan0 dgram 660 wifi wifi
+     class main
+     disabled
+     oneshot
+
